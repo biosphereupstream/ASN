@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Builds & framework artifacts
+build/
+dist/
+.svelte-kit/
+.vite/
+
+# Env files (keep examples)
+.env
+.env.*
+!.env.example
+
+# Freebuff local state & preview logs
+.freebuff/*.log
+.freebuff/*.log.err
+.freebuff/project-id
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>probe</title>
+    <style>
+      body { font: 12px monospace; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <pre id="out">PENDING</pre>
+    <script>
+      // Responsive verification probe (PRD §8). Loads the real homepage in a
+      // same-origin iframe sized to a target device width, waits for hydration
+      // + live API data, then measures computed layout. Headless driver grabs
+      // the <pre> content via --dump-dom.
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+      const WIDTHS = [360, 768, 1920]
+
+      function findStickyCTA(doc) {
+        return [...doc.querySelectorAll('div')].find((el) => {
+          const s = getComputedStyle(el)
+          return s.position === 'fixed' && s.bottom === '0px' && el.querySelectorAll('a').length >= 2
+        })
+      }
+
+      async function probeWidth(width) {
+        const f = document.createElement('iframe')
+        f.style.cssText = `border:0;visibility:hidden;width:${width}px;height:900px`
+        f.src = '/?probe=' + Date.now()
+        const loaded = new Promise((r) => f.addEventListener('load', r, { once: true }))
+        document.body.appendChild(f)
+        await loaded
+        await sleep(2800) // hydration + /api/cities fill
+
+        const d = f.contentDocument
+        const win = f.contentWindow
+        const out = { width }
+
+        out.hOverflow = d.documentElement.scrollWidth > win.innerWidth + 1
+        out.scrollWidth = d.documentElement.scrollWidth
+
+        // §8: sticky bottom CTA bar on mobile
+        const cta = findStickyCTA(d)
+        out.stickyCTA = !!cta
+        if (cta) {
+          const links = [...cta.querySelectorAll('a')]
+          out.ctaLabels = links.map((a) => a.textContent.trim())
+          out.ctaTapHeights = links.map((a) => Math.round(a.getBoundingClientRect().height))
+          const footer = d.querySelector('footer')
+          out.ctaFooterOverlap = footer
+            ? cta.getBoundingClientRect().bottom > footer.getBoundingClientRect().top &&
+              Math.round(parseFloat(getComputedStyle(footer).paddingBottom)) < 96
+            : null
+        }
+
+        // §8: hamburger + drawer < lg, full nav ≥ lg
+        out.hamburger = !![...d.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Buka menu')
+        const topNav = [...d.querySelectorAll('header nav')][0]
+        out.topNavVisible = topNav ? getComputedStyle(topNav).display !== 'none' : null
+
+        // Hero visual present (canvas or poster tier)
+        out.heroVisual = !!d.querySelector('canvas') || !!d.querySelector('.light-sweep')
+
+        // Coverage checker (§6.3) with live data
+        const sels = d.querySelectorAll('#cek select')
+        out.checkerSelects = sels.length
+        out.cityOptions = sels[0] ? sels[0].querySelectorAll('option').length : 0
+        out.citySelectFilled = out.cityOptions > 1
+        out.selectTapHeights = [...sels].map((s) => Math.round(s.getBoundingClientRect().height))
+        const checkBtn = [...d.querySelectorAll('button')].find((x) => x.textContent.includes('Cek Cakupan'))
+        out.checkBtnHeight = checkBtn ? Math.round(checkBtn.getBoundingClientRect().height) : null
+
+        // Live end-to-end check at this width: drive the checker against the API
+        if (sels.length === 2 && out.citySelectFilled) {
+          const setVal = (el, v) => {
+            el.value = v
+            el.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+          setVal(sels[0], 'kota-bekasi')
+          await sleep(800)
+          const ds = d.querySelectorAll('#cek select')[1]
+          out.districtOptions = ds ? ds.querySelectorAll('option').length - 1 : 0
+          setVal(ds, 'bekasi-timur')
+          await sleep(300)
+          const btn = [...d.querySelectorAll('button')].find((x) => x.textContent.includes('Cek Cakupan'))
+          btn.click()
+          await sleep(1400)
+          const banner = [...d.querySelectorAll('#cek div')].find((x) => x.textContent.includes('Kabar baik'))
+          out.liveCheckOk = !!banner
+          out.areaPriceShown = !!d.querySelector('#cek s')
+        }
+
+        // Grid behavior per §8 matrix
+        const art = d.querySelector('article.pkg-card')
+        const grid = art ? art.closest('.grid') : null
+        out.pkgGridCols = grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : null
+        const vpGrid = [...d.querySelectorAll('section')].map((s) => s.querySelector('.grid'))
+        const valGrid = vpGrid.find(Boolean)
+        out.valuePropsCols = valGrid ? getComputedStyle(valGrid).gridTemplateColumns.split(' ').length : null
+
+        // Container width chain (§7.4)
+        out.contentWidth = Math.round(d.querySelector('main section').getBoundingClientRect().width)
+        out.expectedMax = width >= 1600 ? 1320 : width >= 1024 ? 1200 : width >= 768 ? 1152 : width - 40
+
+        // Drawer interaction at sub-lg widths
+        if (width < 1024) {
+          const burger = [...d.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Buka menu')
+          burger.click()
+          await sleep(500)
+          const drawer = [...d.querySelectorAll('[role="dialog"]')].pop()
+          out.drawerOpens = !!drawer
+          out.drawerLinks = drawer ? drawer.querySelectorAll('nav a').length : 0
+          const closeBtn = drawer ? [...drawer.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === 'Tutup menu') : null
+          if (closeBtn) {
+            closeBtn.click()
+            await sleep(500)
+          }
+          out.drawerCloses = !(d.querySelector('[role="dialog"]'))
+        }
+
+        f.remove()
+        return out
+      }
+
+      async function run() {
+        try {
+          const results = []
+          for (const w of WIDTHS) {
+            results.push(await probeWidth(w))
+            await sleep(300)
+          }
+          return { ok: true, results }
+        } catch (e) {
+          return { ok: false, error: String(e && e.stack ? e.stack : e) }
+        }
+      }
+
+      run().then((r) => {
+        document.getElementById('out').textContent = JSON.stringify(r, null, 2)
+        document.title = 'PROBE-DONE'
+      })
+    </script>
+  </body>
+</html>
