@@ -109,3 +109,31 @@ in `/admin/demand` per-district counts.
 
 Seed demo users to trigger the public form: e.g. `Sinta Dewi / 0812-9876-5432`
 (Bekasi Timur) — beware per-IP rate limits when testing repeatedly.
+
+### Environment variables (all optional in dev)
+
+| Variable | Where | Effect when set |
+|---|---|---|
+| `TURNSTILE_SECRET_KEY` | backend | `POST /api/leads` / `area-requests` verify the `turnstileToken` via Cloudflare siteverify; without it verification is skipped (dev default) |
+| `PUBLIC_TURNSTILE_SITE_KEY` | frontend (Vite `env/dynamic/public`) | renders the Turnstile widget on `/daftar` and `/request-area`; without it no widget is shown |
+| `RATE_LIMIT_MAX_PER_MINUTE` / `RATE_LIMIT_MAX_PER_HOUR` | backend | override the FR-4.4 caps (defaults 5 / 10) — the Playwright config raises these for its own backend process only |
+| `ADMIN_PASSWORD` | backend | override the seeded admin password on first boot (fresh DB) |
+
+For production Turnstile: create a site key + secret at dash.cloudflare.com
+(Turnstile, managed widget), set both variables, deploy. Frontend gets the widget
+automatically; the backend rejects submissions with missing/invalid tokens (403).
+
+### E2E tests (Playwright)
+
+`frontend/e2e/lead-flow.spec.ts` — 7 tests: deep-link prefill, happy path,
+client validation (no network POST), server duplicate notice, honeypot swallow,
+checker → Request Area (Flow C), coming-soon waitlist link.
+Run from `frontend/`: `"$HOME/.bun/bin/bun.exe" run test:e2e`.
+
+- Uses the **system Google Chrome** (`channel: 'chrome'`) — the Playwright CDN is
+  unreachable on this network, so `playwright install` is NOT needed.
+- Playwright starts **its own** backend (with raised rate limits) and reuses a
+  running frontend on :5199 if present (`reuseExistingServer: true` on both).
+- If the standalone backend dev server occupies :3001 first, the suite cannot
+  bind its own — stop it (`taskkill /PID <pid> /F`) before running tests.
+- Tests pace themselves against rate limits; total runtime ~20–60s.

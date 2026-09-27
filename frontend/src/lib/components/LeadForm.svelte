@@ -7,6 +7,7 @@
    */
   import { onMount } from 'svelte'
   import { PACKAGES, WA_NUMBER } from '$lib/data/home'
+  import Turnstile from '$lib/components/Turnstile.svelte'
 
   interface CityOption {
     slug: string
@@ -42,6 +43,9 @@
   let consent = $state(false)
   // Honeypot (FR-4.4): hidden from users, attractive to bots.
   let website = $state('')
+  // Turnstile (FR-4.4): token from the widget; empty string when the widget
+  // is not rendered (no PUBLIC_TURNSTILE_SITE_KEY) — backend decides.
+  let turnstileToken = $state('')
 
   // Data state
   let cities = $state<CityOption[]>([])
@@ -54,6 +58,8 @@
   let formError = $state('')
   let fieldErrors = $state<Record<string, string>>({})
   let successLeadId = $state<number | null>(null)
+  /** FR-4.3: the API flags re-submissions within 30 days via `duplicate:true`. */
+  let duplicateNotice = $state(false)
 
   const FIELD_KEYS: Record<string, string> = {
     name: 'fullName',
@@ -151,17 +157,20 @@
         preferredDate: preferredDate || undefined,
         source: resolvedSource(),
         consent,
-        website
+        website,
+        turnstileToken: turnstileToken || undefined
       })
     })
       .then(async (res) => {
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean
           id?: number | null
+          duplicate?: boolean
           error?: string
         }
         if (res.ok && data.ok) {
           successLeadId = data.id ?? 0
+          duplicateNotice = data.duplicate === true
           return
         }
         formError =
@@ -192,12 +201,20 @@
   {#if successLeadId !== null}
     <!-- §6.4 Flow B success state -->
     <div class="glossy rounded-2xl border border-asn-blue-500/40 bg-white/90 p-8 text-center shadow-xl shadow-asn-blue-700/5">
-      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-asn-blue-300/20 text-3xl">✅</div>
-      <h2 class="mb-2 text-xl font-extrabold text-asn-ink-900">Pendaftaran terkirim!</h2>
-      <p class="mb-6 text-sm text-asn-ink-900/70">
-        Terima kasih, <strong>{fullName}</strong>. Nomor referensi kamu
-        <strong class="text-asn-blue-700">#ASN-{successLeadId}</strong> — tim kami akan menghubungi {phone} maksimal 1×24 jam kerja.
-      </p>
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-asn-blue-300/20 text-3xl">{duplicateNotice ? '📨' : '✅'}</div>
+      <h2 class="mb-2 text-xl font-extrabold text-asn-ink-900">{duplicateNotice ? 'Kami sudah punya permintaanmu!' : 'Pendaftaran terkirim!'}</h2>
+      {#if duplicateNotice}
+        <p class="mb-6 text-sm text-asn-ink-900/70">
+          Ternyata kamu sudah mendaftar untuk area ini belakangan ini, {fullName}. Tenang — datamu satu paket
+          <strong class="text-asn-blue-700">#ASN-{successLeadId}</strong> dan tim kami tetap akan menghubungi {phone} maksimal 1×24 jam kerja.
+          Tidak perlu daftar ulang 👍
+        </p>
+      {:else}
+        <p class="mb-6 text-sm text-asn-ink-900/70">
+          Terima kasih, <strong>{fullName}</strong>. Nomor referensi kamu
+          <strong class="text-asn-blue-700">#ASN-{successLeadId}</strong> — tim kami akan menghubungi {phone} maksimal 1×24 jam kerja.
+        </p>
+      {/if}
       <div class="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <a href="https://wa.me/{WA_NUMBER}" class="glossy rounded-full px-5 py-2.5 text-sm font-bold text-asn-blue-700">Chat WhatsApp</a>
         <a href="/" class="btn-primary rounded-full px-5 py-2.5 text-sm font-bold">Kembali ke beranda</a>
@@ -314,6 +331,9 @@
         <label for="hp-website">Website</label>
         <input id="hp-website" type="text" name="website" tabindex="-1" autocomplete="off" bind:value={website} />
       </div>
+
+      <!-- Turnstile (FR-4.4): renders only when PUBLIC_TURNSTILE_SITE_KEY is set -->
+      <Turnstile onToken={(tk) => (turnstileToken = tk)} />
 
       <!-- FR-4.5 UU PDP consent -->
       <label class="mt-5 flex items-start gap-3 rounded-xl bg-asn-blue-300/10 px-4 py-3">

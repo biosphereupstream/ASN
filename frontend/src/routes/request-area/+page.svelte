@@ -7,6 +7,7 @@
   import { onMount } from 'svelte'
   import { page } from '$app/state'
   import { WA_NUMBER } from '$lib/data/home'
+  import Turnstile from '$lib/components/Turnstile.svelte'
 
   interface CityOption {
     slug: string
@@ -27,6 +28,7 @@
   let district = $state('')
   let notifyWhenAvailable = $state(true)
   let website = $state('') // honeypot
+  let turnstileToken = $state('') // Turnstile (FR-4.4); empty when widget absent
 
   let cities = $state<CityOption[]>([])
   let districts = $state<DistrictOption[]>([])
@@ -91,7 +93,8 @@
         city,
         district,
         notifyWhenAvailable: notifyWhenAvailable,
-        website
+        website,
+        turnstileToken: turnstileToken || undefined
       })
     })
       .then(async (res) => {
@@ -234,6 +237,9 @@
           <label for="hp-ra-website">Website</label>
           <input id="hp-ra-website" type="text" name="website" tabindex="-1" autocomplete="off" bind:value={website} />
         </div>
+
+        <!-- Turnstile (FR-4.4): renders only when PUBLIC_TURNSTILE_SITE_KEY is set -->
+        <Turnstile onToken={(tk) => (turnstileToken = tk)} />
 
         {#if formError}
           <div class="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{formError}</div>

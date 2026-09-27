@@ -17,6 +17,10 @@ dist/
 .freebuff/*.log.err
 .freebuff/project-id
 
+# Playwright artifacts
+test-results/
+playwright-report/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

@@ -12,10 +12,15 @@ import { areaRequests, cities, districts, leads, packages } from '../db/schema'
  */
 
 const DUPLICATE_WINDOW_DAYS = 30
-/** FR-4.4: burst abuse guard — 5 submissions per IP per minute. */
-const MAX_PER_IP_PER_MINUTE = 5
-/** FR-4.4: sustained abuse guard — 10 submissions per IP per hour. */
-const MAX_PER_IP_PER_HOUR = 10
+// (rate-limit constants live below, next to ipRateLimited)
+/**
+ * FR-4.4 abuse guards — 5 submissions per IP per minute and 10 per hour by
+ * default. Overridable via env (RATE_LIMIT_MAX_PER_MINUTE /
+ * RATE_LIMIT_MAX_PER_HOUR) so test/CI environments can raise them without
+ * weakening the production defaults.
+ */
+const MAX_PER_IP_PER_MINUTE = Number(process.env.RATE_LIMIT_MAX_PER_MINUTE ?? 5) || 5
+const MAX_PER_IP_PER_HOUR = Number(process.env.RATE_LIMIT_MAX_PER_HOUR ?? 10) || 10
 
 const LEAD_SOURCES = [
   'homepage_checker',
