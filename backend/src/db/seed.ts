@@ -5,6 +5,7 @@ import {
   contentBlocks,
   coverageAreas,
   districts,
+  leads,
   packageAreaPrices,
   packages,
   products,
@@ -182,12 +183,21 @@ export async function seedIfEmpty(): Promise<void> {
     }
   })
 
-  // --- Dev admin account (placeholder hash — real auth is FR-7.1, later) ---
+  // --- Dev admin account (FR-7.1). Password from env or a dev default —
+  // hash with argon2id via Bun.password so login works out of the box.
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin123'
   await db.insert(adminUsers).values({
     email: 'admin@asn.net',
-    passwordHash: 'dev-only:changeme',
+    passwordHash: await Bun.password.hash(adminPassword, { algorithm: 'argon2id', memoryCost: 19456, timeCost: 2 }),
     name: 'Admin ASN.NET',
     role: 'admin' as const
+  })
+  // A sales-role user so role gating is demonstrable.
+  await db.insert(adminUsers).values({
+    email: 'sales@asn.net',
+    passwordHash: await Bun.password.hash(adminPassword, { algorithm: 'argon2id', memoryCost: 19456, timeCost: 2 }),
+    name: 'Sales ASN.NET',
+    role: 'sales' as const
   })
 
   console.log('[seed] done: 6 cities, 22 districts, 4 packages, 1 promo')
@@ -197,6 +207,106 @@ export async function coverageCounts(): Promise<{ cities: number; available: num
   const [c] = await db.select({ id: cities.id }).from(cities).limit(1)
   const av = await db.select({ id: coverageAreas.id }).from(coverageAreas).where(eq(coverageAreas.status, 'available'))
   return { cities: c ? 1 : 0, available: av.length }
+}
+
+/**
+ * Demo leads so the inbox (FR-7.4 / §13) shows a working pipeline on first
+ * boot. Idempotent — skipped once any lead exists.
+ */
+export async function seedDemoLeadsIfEmpty(): Promise<void> {
+  const existing = await db.select({ id: leads.id }).from(leads).limit(1)
+  if (existing.length > 0) return
+
+  const cityRows = await db.select({ id: cities.id, slug: cities.slug }).from(cities)
+  const districtRows = await db.select({ id: districts.id, cityId: districts.cityId, slug: districts.slug }).from(districts)
+  const packageRows = await db.select({ id: packages.id, slug: packages.slug }).from(packages)
+  const cityId = Object.fromEntries(cityRows.map((c) => [c.slug, c.id])) as Record<string, number>
+  const pkgId = Object.fromEntries(packageRows.map((p) => [p.slug, p.id])) as Record<string, number>
+  const dId = (citySlug: string, districtSlug: string) =>
+    districtRows.find((d) => d.cityId === cityId[citySlug] && d.slug === districtSlug)?.id
+
+  const now = Date.now()
+  const daysAgo = (n: number) => new Date(now - n * 24 * 60 * 60 * 1000)
+
+  await db.insert(leads).values([
+    {
+      fullName: 'Budi Santoso',
+      phone: '0812-1111-2222',
+      email: 'budi.santoso@example.com',
+      cityId: cityId['kota-bekasi']!,
+      districtId: dId('kota-bekasi', 'bekasi-timur')!,
+      address: 'Jl. Cut Meutia No. 12, Bekasi Timur',
+      packageId: pkgId['fiber-100']!,
+      source: 'homepage_checker' as const,
+      status: 'new' as const,
+      consentAt: daysAgo(0)
+    },
+    {
+      fullName: 'Siti Rahmawati',
+      phone: '0813-3333-4444',
+      cityId: cityId['kota-bogor']!,
+      districtId: dId('kota-bogor', 'cibinong')!,
+      address: 'Jl. Raya Bogor KM 40, Cibinong',
+      packageId: pkgId['fiber-300']!,
+      source: 'package_card' as const,
+      status: 'new' as const,
+      consentAt: daysAgo(1)
+    },
+    {
+      fullName: 'Andi Wijaya',
+      phone: '0815-5555-6666',
+      cityId: cityId['jakarta-selatan']!,
+      districtId: dId('jakarta-selatan', 'tebet')!,
+      address: 'Jl. Tebet Raya No. 8, Tebet',
+      packageId: pkgId['stream-100']!,
+      source: 'contact_page' as const,
+      status: 'contacted' as const,
+      notes: 'Sudah dihubungi — minta jadwal survei hari Sabtu pagi.',
+      consentAt: daysAgo(2),
+      createdAt: daysAgo(2)
+    },
+    {
+      fullName: 'Rina Marlina',
+      phone: '0817-7777-8888',
+      cityId: cityId['kota-depok']!,
+      districtId: dId('kota-depok', 'beji')!,
+      address: 'Jl. Margonda No. 45, Beji',
+      packageId: pkgId['fiber-50']!,
+      source: 'product_page' as const,
+      status: 'scheduled' as const,
+      preferredDate: new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      notes: 'Instalasi dijadwalkan; pengguna sudah konfirmasi alamat.',
+      consentAt: daysAgo(4),
+      createdAt: daysAgo(4)
+    },
+    {
+      fullName: 'Dewi Lestari',
+      phone: '0819-9999-0000',
+      cityId: cityId['kota-bogor']!,
+      districtId: dId('kota-bogor', 'tamansari')!,
+      address: 'Kp. Tamansari RT 03, Tamansari',
+      source: 'waitlist' as const,
+      status: 'new' as const,
+      notes: 'Area belum tersedia — masukkan ke demand map bila tersedia.',
+      consentAt: daysAgo(1),
+      createdAt: daysAgo(1)
+    },
+    {
+      fullName: 'Agus Salim',
+      phone: '0821-1212-3434',
+      cityId: cityId['kabupaten-bogor']!,
+      districtId: dId('kabupaten-bogor', 'citeureup')!,
+      address: 'Jl. Raya Citeureup No. 3, Citeureup',
+      packageId: pkgId['fiber-100']!,
+      source: 'promo_page' as const,
+      status: 'installed' as const,
+      notes: 'Terpasang; referral ke tetangga (potensi 2 lead baru).',
+      consentAt: daysAgo(9),
+      createdAt: daysAgo(9)
+    }
+  ])
+
+  console.log('[seed] demo leads inserted: 6')
 }
 
 // Allow `bun run db:seed` to (re)seed manually.

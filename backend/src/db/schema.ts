@@ -160,6 +160,21 @@ export const adminUsers = pgTable('admin_users', {
   lastLoginAt: timestamp('last_login_at', { withTimezone: true })
 })
 
+/**
+ * Server-side session store for admin auth (FR-7.1): opaque random token →
+ * user + expiry. Cookie holds only the token (httpOnly, SameSite=Lax); the
+ * token itself grants nothing without this row, so logout/revocation is real.
+ */
+export const adminSessions = pgTable('admin_sessions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => adminUsers.id, { onDelete: 'cascade' }),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+})
+
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   actorId: integer('actor_id').references(() => adminUsers.id),

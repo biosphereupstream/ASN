@@ -18,7 +18,7 @@
         lede="Cek cakupan, pilih paket, tim kami datang dalam 1×24 jam."
       />
       <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="#cek" class="btn-primary rounded-full px-8 py-3.5 text-sm font-extrabold">Cek Cakupan</a>
+        <a href="/daftar?source=promo_page" class="btn-primary rounded-full px-8 py-3.5 text-sm font-extrabold">Langganan Sekarang</a>
         <a
           href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo ASN.NET, saya mau tanya paket untuk area saya.')}`}
           class="glossy rounded-full px-8 py-3.5 text-sm font-extrabold"

@@ -66,3 +66,46 @@ Notes:
 - Other threads/users may run dev servers; check the port first with
   `netstat -ano | findstr :5199` (or pick another free port and adjust the command flags).
 - To stop: kill the pid (e.g. `taskkill /PID <pid> /F` on Windows).
+
+## 3. Admin back-office (PRD §13 / FR-7)
+
+Routes: `/admin/login`, `/admin/leads` (inbox), `/admin/coverage` (CRUD), `/admin/demand`.
+Guard: SvelteKit server-side (`hooks.server.ts` → backend `/api/admin/me`); the whole
+`/admin` tree redirects to `/admin/login?next=…` when the session cookie is invalid.
+
+Dev credentials (seeded by `backend/src/db/seed.ts`; argon2id hashes):
+
+| Email | Password | Role | Can |
+|---|---|---|---|
+| `admin@asn.net` | `admin123` | admin | leads + coverage + prices |
+| `sales@asn.net` | `admin123` | sales | leads only (coverage returns 403) |
+
+Override the admin password with `ADMIN_PASSWORD=…` before first boot (fresh DB).
+Sessions are server-side records (`admin_sessions`, token-hash + expiry); the cookie holds
+only the opaque token. PGlite is in-memory, so a backend restart logs everyone out.
+
+Backend API (all session-guarded, under `/api/admin`): `POST /login`, `POST /logout`,
+`GET /me`, `GET/PATCH /leads`, `POST /leads/bulk`, `GET /leads/export.csv`,
+`GET/PUT /coverage/:cityId/:districtId`, `POST /coverage/bulk`, `POST /cities`,
+`POST /districts`, `GET /demand`, `GET/PATCH /prices`.
+
+## 4. Public lead capture (PRD FR-4 / FR-5.1)
+
+Routes: `/daftar` (lead form, URL prefill: `?package=fiber-100&city=kota-bekasi&district=bekasi-timur&source=package_card`)
+and `/request-area` (waitlist for not-available districts, prefilled from the checker's
+Request Area / waitlist links). The homepage checker's package rows and the Flow-C banner
+link to both.
+
+Public API (no session): `POST /api/leads` (validation, UU PDP consent required,
+phone normalized to E.164 +62, honeypot `website` field, per-IP rate limit 5/min +
+10/hour, duplicate detection same phone+city within 30 days → stored with `duplicateOf`,
+Cloudflare Turnstile verified when `TURNSTILE_SECRET_KEY` is set) and
+`POST /api/area-requests` (same protections; repeat request within 30 days returns
+grace `ok:true` with the original id). Errors are friendly `422` codes (`INVALID_*`,
+`CONSENT_REQUIRED`), `429` rate-limited; honeypot hits pretend success.
+
+Public submissions land in `/admin/leads` with their source tag; area requests appear
+in `/admin/demand` per-district counts.
+
+Seed demo users to trigger the public form: e.g. `Sinta Dewi / 0812-9876-5432`
+(Bekasi Timur) — beware per-IP rate limits when testing repeatedly.

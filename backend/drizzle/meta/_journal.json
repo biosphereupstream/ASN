@@ -8,6 +8,13 @@
       "when": 1789289394624,
       "tag": "0000_icy_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790096717006,
+      "tag": "0001_wooden_starjammers",
+      "breakpoints": true
     }
   ]
 }
