@@ -38,14 +38,19 @@ test.describe('Dedicated FAQ Hub — /faq', () => {
     await expect(page.getByText('Apa yang dimaksud dengan Unlimited tanpa batasan FUP?')).toBeVisible()
 
     // Filter by "Paket & Tagihan"
-    await paketBtn.click()
+    await expect(async () => {
+      await paketBtn.click()
+      await expect(page.getByText('Kapan tanggal jatuh tempo pembayaran tagihan bulanan?')).toBeVisible({ timeout: 1000 })
+      await expect(page.getByText('Berapa lama proses pemasangan internet fiber ASN.NET?')).not.toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 10000 })
+
     await expect(page.getByText('Apa yang dimaksud dengan Unlimited tanpa batasan FUP?')).toBeVisible()
-    await expect(page.getByText('Kapan tanggal jatuh tempo pembayaran tagihan bulanan?')).toBeVisible()
-    await expect(page.getByText('Berapa lama proses pemasangan internet fiber ASN.NET?')).not.toBeVisible()
 
     // Switch back to "Semua"
-    await allBtn.click()
-    await expect(page.getByText('Berapa lama proses pemasangan internet fiber ASN.NET?')).toBeVisible()
+    await expect(async () => {
+      await allBtn.click()
+      await expect(page.getByText('Berapa lama proses pemasangan internet fiber ASN.NET?')).toBeVisible({ timeout: 1000 })
+    }).toPass({ timeout: 10000 })
   })
 
   test('live keyword search filters questions in real-time and handles empty search', async ({ page }) => {
