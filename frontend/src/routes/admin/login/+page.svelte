@@ -1,7 +1,7 @@
 <script lang="ts">
   import AsnLogo from '$lib/components/AsnLogo.svelte'
 
-  let { data } = $props()
+  let { data, form } = $props()
 </script>
 
 <svelte:head>
@@ -18,12 +18,14 @@
       </div>
     </div>
 
-    {#if data?.error}
+    {#if data?.error || form?.error}
       <div class="mb-4 rounded-xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {#if data.error === 'RATE_LIMITED'}
-          Terlalu banyak percobaan. Coba lagi dalam beberapa menit.
+        {#if (data?.error || form?.error) === 'RATE_LIMITED'}
+          Terlalu banyak percobaan login. Coba lagi dalam beberapa menit.
+        {:else if (data?.error || form?.error) === 'BACKEND_UNREACHABLE'}
+          Koneksi ke backend gagal. Layanan sedang menghubungkan ke cloud...
         {:else}
-          Email atau kata sandi salah.
+          Email atau kata sandi salah. Pastikan format email (contoh: <code>admin@asn.net</code> atau <code>admin@asn.net.id</code>).
         {/if}
       </div>
     {/if}
