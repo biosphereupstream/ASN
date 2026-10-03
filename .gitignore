@@ -6,6 +6,8 @@ build/
 dist/
 .svelte-kit/
 .vite/
+.vercel/
+
 
 # Env files (keep examples)
 .env
