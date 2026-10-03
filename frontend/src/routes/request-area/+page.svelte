@@ -6,7 +6,7 @@
    */
   import { onMount } from 'svelte'
   import { page } from '$app/state'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   import Turnstile from '$lib/components/Turnstile.svelte'
 
   interface CityOption {
@@ -141,7 +141,7 @@
     <nav class="mb-8 flex items-center justify-between" aria-label="Navigasi">
       <a href="/" class="flex items-center gap-2 text-sm font-bold text-asn-ink-900/70 transition hover:text-asn-blue-700">← Beranda</a>
       <a
-        href="https://wa.me/{WA_NUMBER}"
+        href={WA_URL}
         class="glossy rounded-full px-4 py-2 text-sm font-bold text-asn-blue-700 transition hover:border-asn-blue-500/60"
       >
         Butuh bantuan? WhatsApp

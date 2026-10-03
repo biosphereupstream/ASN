@@ -106,6 +106,8 @@ export const FAQS: { q: string; a: string }[] = [
 ]
 
 export const WA_NUMBER = '6285694072344'
+export const DEFAULT_WA_MESSAGE = 'Halo CS ASN.NET, saya tertarik berlangganan internet fiber. Mohon informasi paket dan pengecekan cakupan area.'
+export const WA_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(DEFAULT_WA_MESSAGE)}`
 
 export function formatIdr(n: number): string {
   return 'Rp' + n.toLocaleString('id-ID')

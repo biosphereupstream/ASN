@@ -1,7 +1,7 @@
 <script lang="ts">
   import SiteHeader from '$lib/components/SiteHeader.svelte'
   import SiteFooter from '$lib/components/SiteFooter.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -170,7 +170,7 @@
             <p class="text-xs text-asn-ink-900/60">Tim layanan pelanggan kami siap membantu Anda setiap hari.</p>
           </div>
           <a
-            href="https://wa.me/{WA_NUMBER}"
+            href={WA_URL}
             target="_blank"
             rel="noopener noreferrer"
             class="btn-primary rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-1.5 shrink-0"

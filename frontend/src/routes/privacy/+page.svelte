@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   /**
    * Kebijakan Privasi (PRD FR-4.5): the consent checkbox on /daftar and
    * /request-area links here. Plain-language summary of how lead data is
@@ -91,7 +91,7 @@
         <h2 class="mb-2 text-lg font-bold text-asn-ink-900">7. Hubungi kami</h2>
         <p>
           Untuk pertanyaan seputar privasi atau untuk menggunakan hak-hakmu di atas, hubungi
-          <a href="https://wa.me/{WA_NUMBER}" class="font-bold text-asn-blue-700 underline underline-offset-2">WhatsApp resmi kami</a>
+          <a href={WA_URL} class="font-bold text-asn-blue-700 underline underline-offset-2">WhatsApp resmi kami</a>
           atau kunjungi halaman <a href="/daftar" class="font-bold text-asn-blue-700 underline underline-offset-2">pendaftaran</a>.
         </p>
       </section>

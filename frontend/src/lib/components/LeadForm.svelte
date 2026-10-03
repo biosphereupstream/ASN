@@ -6,7 +6,7 @@
    * §6.4 Flow B.
    */
   import { onMount } from 'svelte'
-  import { PACKAGES, WA_NUMBER } from '$lib/data/home'
+  import { PACKAGES, WA_URL } from '$lib/data/home'
   import Turnstile from '$lib/components/Turnstile.svelte'
 
   interface CityOption {
@@ -216,7 +216,7 @@
         </p>
       {/if}
       <div class="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-        <a href="https://wa.me/{WA_NUMBER}" class="glossy rounded-full px-5 py-2.5 text-sm font-bold text-asn-blue-700">Chat WhatsApp</a>
+        <a href={WA_URL} class="glossy rounded-full px-5 py-2.5 text-sm font-bold text-asn-blue-700">Chat WhatsApp</a>
         <a href="/" class="btn-primary rounded-full px-5 py-2.5 text-sm font-bold">Kembali ke beranda</a>
       </div>
     </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from 'svelte/transition'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   import AsnLogo from './AsnLogo.svelte'
 
   let { open = $bindable(false) }: { open?: boolean } = $props()
@@ -61,7 +61,7 @@
         <a href="/daftar" class="btn-primary block rounded-xl py-3 text-center text-sm font-bold" onclick={close}>
           Langganan Sekarang
         </a>
-        <a href="https://wa.me/{WA_NUMBER}" class="glossy block rounded-xl py-3 text-center text-sm font-bold" onclick={close}>
+        <a href={WA_URL} class="glossy block rounded-xl py-3 text-center text-sm font-bold" onclick={close}>
           Chat WhatsApp
         </a>
       </div>

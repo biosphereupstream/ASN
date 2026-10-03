@@ -4,7 +4,7 @@
   import AsnLogo from '$lib/components/AsnLogo.svelte'
   import TiltCard from '$lib/components/TiltCard.svelte'
   import MetallicIcon from '$lib/components/MetallicIcon.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
 
   interface ProductFeature {
     name: string
@@ -251,7 +251,7 @@
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
           <a
-            href="https://wa.me/{WA_NUMBER}"
+            href={WA_URL}
             target="_blank"
             rel="noopener noreferrer"
             class="btn-primary rounded-full px-5 py-2.5 text-xs font-bold inline-flex items-center gap-2"

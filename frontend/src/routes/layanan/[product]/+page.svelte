@@ -3,7 +3,7 @@
   import SiteFooter from '$lib/components/SiteFooter.svelte'
   import MetallicIcon from '$lib/components/MetallicIcon.svelte'
   import TiltCard from '$lib/components/TiltCard.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
@@ -308,7 +308,7 @@
         </p>
         <div class="pt-2">
           <a
-            href="https://wa.me/{WA_NUMBER}"
+            href={WA_URL}
             target="_blank"
             rel="noopener noreferrer"
             class="btn-primary rounded-full px-6 py-2.5 text-xs font-bold inline-flex items-center gap-2"

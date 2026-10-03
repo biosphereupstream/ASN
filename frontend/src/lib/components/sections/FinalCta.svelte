@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   import { reveal } from '$lib/reveal'
   import SectionHead from './SectionHead.svelte'
 </script>
@@ -20,7 +20,7 @@
       <div class="flex flex-col items-center justify-center gap-3 sm:flex-row">
         <a href="/daftar?source=promo_page" class="btn-primary rounded-full px-8 py-3.5 text-sm font-extrabold">Langganan Sekarang</a>
         <a
-          href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo ASN.NET, saya mau tanya paket untuk area saya.')}`}
+          href={WA_URL}
           class="glossy rounded-full px-8 py-3.5 text-sm font-extrabold"
         >
           Chat WhatsApp

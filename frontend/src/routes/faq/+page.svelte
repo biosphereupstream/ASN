@@ -2,7 +2,7 @@
   import { slide } from 'svelte/transition'
   import SiteHeader from '$lib/components/SiteHeader.svelte'
   import SiteFooter from '$lib/components/SiteFooter.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
   import type { FaqCategory, FaqItem } from '$lib/data/faqs'
 
   let { data } = $props<{ data: { faqs: FaqItem[] } }>()
@@ -208,7 +208,7 @@
               Hapus Filter
             </button>
             <a
-              href="https://wa.me/{WA_NUMBER}"
+              href={WA_URL}
               target="_blank"
               rel="noopener noreferrer"
               class="btn-primary rounded-full px-4 py-2 text-xs font-bold"
@@ -269,7 +269,7 @@
           </p>
           <div class="flex flex-wrap items-center gap-3">
             <a
-              href="https://wa.me/{WA_NUMBER}"
+              href={WA_URL}
               target="_blank"
               rel="noopener noreferrer"
               class="rounded-full bg-white px-6 py-2.5 text-xs font-bold text-asn-blue-900 hover:bg-asn-silver-100 transition shadow-sm inline-flex items-center gap-2"

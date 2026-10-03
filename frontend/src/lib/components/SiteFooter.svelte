@@ -1,6 +1,6 @@
 <script lang="ts">
   import AsnLogo from './AsnLogo.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
 </script>
 
 <footer class="border-t border-asn-silver-400/40 bg-asn-silver-100/30 text-asn-ink-900/70 pt-12 pb-24 sm:pb-12 text-xs">
@@ -52,7 +52,7 @@
         <p class="text-asn-ink-900/60 leading-relaxed">Ada pertanyaan atau butuh bantuan pendaftaran?</p>
         <div class="space-y-2 pt-1">
           <a
-            href="https://wa.me/{WA_NUMBER}"
+            href={WA_URL}
             target="_blank"
             rel="noopener noreferrer"
             class="glossy inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-asn-ink-900 hover:border-asn-blue-500/50"

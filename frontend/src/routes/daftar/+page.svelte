@@ -5,7 +5,7 @@
    */
   import { page } from '$app/state'
   import LeadForm, { type Prefill } from '$lib/components/LeadForm.svelte'
-  import { WA_NUMBER } from '$lib/data/home'
+  import { WA_URL } from '$lib/data/home'
 
   let prefill = $derived<Prefill>({
     package: page.url.searchParams.get('package') ?? undefined,
@@ -37,7 +37,7 @@
         ← Beranda
       </a>
       <a
-        href="https://wa.me/{WA_NUMBER}"
+        href={WA_URL}
         class="glossy rounded-full px-4 py-2 text-sm font-bold text-asn-blue-700 transition hover:border-asn-blue-500/60"
       >
         Butuh bantuan? WhatsApp
