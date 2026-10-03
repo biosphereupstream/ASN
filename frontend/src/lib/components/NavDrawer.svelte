@@ -6,8 +6,9 @@
   let { open = $bindable(false) }: { open?: boolean } = $props()
 
   const links = [
-    { href: '/layanan/fiber', label: 'Layanan' },
+    { href: '/layanan', label: 'Layanan' },
     { href: '/paket', label: 'Paket' },
+    { href: '/city', label: 'Cakupan Kota' },
     { href: '/promo', label: 'Promo' },
     { href: '/kontak', label: 'Kontak' }
   ]
