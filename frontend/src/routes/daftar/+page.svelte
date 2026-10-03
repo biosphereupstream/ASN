@@ -6,13 +6,12 @@
   import { page } from '$app/state'
   import LeadForm, { type Prefill } from '$lib/components/LeadForm.svelte'
 
-  const q = page.url.searchParams
-  const prefill: Prefill = {
-    package: q.get('package') ?? undefined,
-    city: q.get('city') ?? undefined,
-    district: q.get('district') ?? undefined,
-    source: q.get('source') ?? undefined
-  }
+  let prefill = $derived<Prefill>({
+    package: page.url.searchParams.get('package') ?? undefined,
+    city: page.url.searchParams.get('city') ?? undefined,
+    district: page.url.searchParams.get('district') ?? undefined,
+    source: page.url.searchParams.get('source') ?? undefined
+  })
 </script>
 
 <svelte:head>

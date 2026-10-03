@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
-import { listCities, listDistricts, resolveCoverage } from '../services/coverage.service'
+import { getCityDetail, listCities, listDistricts, listPublicCatalog, resolveCoverage } from '../services/coverage.service'
+import { getContentBlock, listAllContentBlocks } from '../services/contentAdmin.service'
 import {
   createAreaRequest,
   createLead,
@@ -55,6 +56,21 @@ export const publicRoutes = new Elysia({ prefix: '/api' })
     }
   )
   .get(
+    '/cities/:slug',
+    async ({ params, set }) => {
+      const cityBundle = await getCityDetail(params.slug)
+      if (!cityBundle) {
+        set.status = 404
+        return { error: 'CITY_NOT_FOUND' }
+      }
+      set.headers['Cache-Control'] = CACHE_HEADER
+      return cityBundle
+    },
+    {
+      params: t.Object({ slug: t.String({ minLength: 1 }) })
+    }
+  )
+  .get(
     '/coverage',
     async ({ query, set }) => {
       const result = await resolveCoverage(query.city, query.district)
@@ -70,6 +86,25 @@ export const publicRoutes = new Elysia({ prefix: '/api' })
       query: t.Object({
         city: t.String({ minLength: 1 }),
         district: t.String({ minLength: 1 })
+      })
+    }
+  )
+  // --- Public packages catalog (PRD FR-2) -----------------------------------
+  .get(
+    '/packages',
+    async ({ query, set }) => {
+      set.headers['Cache-Control'] = CACHE_HEADER
+      return await listPublicCatalog({
+        product: query.product || undefined,
+        citySlug: query.city || undefined,
+        districtSlug: query.district || undefined
+      })
+    },
+    {
+      query: t.Object({
+        product: t.Optional(t.String()),
+        city: t.Optional(t.String()),
+        district: t.Optional(t.String())
       })
     }
   )
@@ -152,5 +187,23 @@ export const publicRoutes = new Elysia({ prefix: '/api' })
         website: t.Optional(t.String()),
         turnstileToken: t.Optional(t.String())
       })
+    }
+  )
+  // --- Content blocks (PRD FR-6 / §10.3) --------------------------------------
+  .get('/content', async () => {
+    return await listAllContentBlocks()
+  })
+  .get(
+    '/content/:key',
+    async ({ params, set }) => {
+      const block = await getContentBlock(params.key)
+      if (!block) {
+        set.status = 404
+        return { error: 'NOT_FOUND' }
+      }
+      return block
+    },
+    {
+      params: t.Object({ key: t.String() })
     }
   )

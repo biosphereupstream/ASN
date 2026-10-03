@@ -258,9 +258,11 @@
           {#if fieldErrors.email}<span class="mt-1 block text-xs font-medium text-red-600">{fieldErrors.email}</span>{/if}
         </label>
 
-        <label class="block">
+        <label class="block" for="city">
           <span class="mb-1 block text-xs font-semibold text-asn-silver-600">Kota / Kabupaten *</span>
           <select
+            id="city"
+            name="city"
             bind:value={city}
             disabled={loadingCities || cities.length === 0}
             onchange={() => {
@@ -277,9 +279,11 @@
           </select>
           {#if fieldErrors.city}<span class="mt-1 block text-xs font-medium text-red-600">{fieldErrors.city}</span>{/if}
         </label>
-        <label class="block">
+        <label class="block" for="district">
           <span class="mb-1 block text-xs font-semibold text-asn-silver-600">Kecamatan *</span>
           <select
+            id="district"
+            name="district"
             bind:value={district}
             disabled={!city || loadingDistricts}
             class="w-full rounded-xl border border-asn-silver-400/60 bg-white/80 px-3 py-3 text-sm outline-none focus:border-asn-blue-500 focus:ring-2 focus:ring-asn-blue-500/30 disabled:opacity-50"
@@ -303,9 +307,11 @@
           {#if fieldErrors.address}<span class="mt-1 block text-xs font-medium text-red-600">{fieldErrors.address}</span>{/if}
         </label>
 
-        <label class="block">
+        <label class="block" for="pkg">
           <span class="mb-1 block text-xs font-semibold text-asn-silver-600">Paket (opsional)</span>
           <select
+            id="pkg"
+            name="package"
             bind:value={pkg}
             class="w-full rounded-xl border border-asn-silver-400/60 bg-white/80 px-3 py-3 text-sm outline-none focus:border-asn-blue-500 focus:ring-2 focus:ring-asn-blue-500/30"
           >
