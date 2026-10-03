@@ -1,5 +1,5 @@
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto'
-import { and, eq, gt, lt, or } from 'drizzle-orm'
+import { and, asc, eq, gt, lt, or } from 'drizzle-orm'
 import { db } from '../db/client'
 import { adminSessions, adminUsers, auditLogs } from '../db/schema'
 
@@ -25,11 +25,18 @@ export interface AdminActor {
 }
 
 export type AdminRole = AdminActor['role']
+export const ALL_ADMIN_ROLES: AdminRole[] = ['admin', 'marketing', 'sales', 'noc']
 
 /** Roles allowed to mutate coverage (NOC owns coverage per PRD §15). */
 export const COVERAGE_ROLES: AdminRole[] = ['admin', 'noc']
 /** Roles allowed to work the leads pipeline (sales workflow per §13). */
 export const LEADS_ROLES: AdminRole[] = ['admin', 'sales', 'marketing']
+/** Roles allowed to manage packages & prices. */
+export const CATALOG_ROLES: AdminRole[] = ['admin', 'marketing']
+/** Roles allowed to edit CMS content blocks. */
+export const CONTENT_ROLES: AdminRole[] = ['admin', 'marketing']
+/** Roles allowed to manage admin users. */
+export const USER_MGMT_ROLES: AdminRole[] = ['admin']
 
 // --- In-memory login rate limiting (per process; fine for a single-node dev API) ---
 const attempts = new Map<string, { count: number; firstAt: number }>()
@@ -149,3 +156,142 @@ export async function pruneExpiredSessions(): Promise<void> {
 export function constantTimeEqualsExport(a: string, b: string): boolean {
   return constantTimeEquals(a, b)
 }
+
+// --- Admin user management (FR-7.1 / FR-7.5) -------------------------------
+
+export async function listAdminUsers() {
+  return await db
+    .select({
+      id: adminUsers.id,
+      email: adminUsers.email,
+      name: adminUsers.name,
+      role: adminUsers.role,
+      isActive: adminUsers.isActive,
+      lastLoginAt: adminUsers.lastLoginAt
+    })
+    .from(adminUsers)
+    .orderBy(asc(adminUsers.id))
+}
+
+export async function createAdminUser(
+  input: { email: string; name: string; role: AdminRole; password: string },
+  actor: AdminActor
+): Promise<{ ok: true; user: { id: number; email: string; name: string; role: AdminRole } } | { ok: false; error: 'EMAIL_EXISTS' | 'INVALID_ROLE' }> {
+  if (!ALL_ADMIN_ROLES.includes(input.role)) {
+    return { ok: false, error: 'INVALID_ROLE' }
+  }
+
+  const normalizedEmail = input.email.toLowerCase().trim()
+  const [existing] = await db
+    .select({ id: adminUsers.id })
+    .from(adminUsers)
+    .where(eq(adminUsers.email, normalizedEmail))
+    .limit(1)
+
+  if (existing) {
+    return { ok: false, error: 'EMAIL_EXISTS' }
+  }
+
+  const passwordHash = await Bun.password.hash(input.password, {
+    algorithm: 'argon2id',
+    memoryCost: 19456,
+    timeCost: 2
+  })
+
+  const [created] = await db
+    .insert(adminUsers)
+    .values({
+      email: normalizedEmail,
+      passwordHash,
+      name: input.name.trim(),
+      role: input.role,
+      isActive: true
+    })
+    .returning({
+      id: adminUsers.id,
+      email: adminUsers.email,
+      name: adminUsers.name,
+      role: adminUsers.role
+    })
+
+  await recordAudit(actor, 'admin_user', created.id, 'create', {
+    email: normalizedEmail,
+    name: input.name.trim(),
+    role: input.role
+  })
+
+  return { ok: true, user: created }
+}
+
+export async function updateAdminUser(
+  id: number,
+  input: { name?: string; role?: AdminRole; isActive?: boolean },
+  actor: AdminActor
+): Promise<{ ok: true } | { ok: false; error: 'USER_NOT_FOUND' | 'CANNOT_DEACTIVATE_SELF' | 'CANNOT_DEMOTE_SELF' | 'INVALID_ROLE' }> {
+  if (input.role !== undefined && !ALL_ADMIN_ROLES.includes(input.role)) {
+    return { ok: false, error: 'INVALID_ROLE' }
+  }
+
+  if (id === actor.id) {
+    if (input.isActive === false) {
+      return { ok: false, error: 'CANNOT_DEACTIVATE_SELF' }
+    }
+    if (input.role !== undefined && input.role !== 'admin') {
+      return { ok: false, error: 'CANNOT_DEMOTE_SELF' }
+    }
+  }
+
+  const updates: Record<string, unknown> = {}
+  if (input.name !== undefined) updates.name = input.name.trim()
+  if (input.role !== undefined) updates.role = input.role
+  if (input.isActive !== undefined) updates.isActive = input.isActive
+
+  if (Object.keys(updates).length === 0) return { ok: true }
+
+  const [updated] = await db
+    .update(adminUsers)
+    .set(updates)
+    .where(eq(adminUsers.id, id))
+    .returning({ id: adminUsers.id })
+
+  if (!updated) return { ok: false, error: 'USER_NOT_FOUND' }
+
+  // If user is deactivated, revoke all active sessions immediately
+  if (input.isActive === false) {
+    await db.delete(adminSessions).where(eq(adminSessions.userId, id))
+  }
+
+  await recordAudit(actor, 'admin_user', id, 'update', updates)
+  return { ok: true }
+}
+
+export async function resetAdminUserPassword(
+  id: number,
+  newPassword: string,
+  actor: AdminActor
+): Promise<{ ok: true } | { ok: false; error: 'USER_NOT_FOUND' }> {
+  const [user] = await db
+    .select({ id: adminUsers.id })
+    .from(adminUsers)
+    .where(eq(adminUsers.id, id))
+    .limit(1)
+
+  if (!user) return { ok: false, error: 'USER_NOT_FOUND' }
+
+  const passwordHash = await Bun.password.hash(newPassword, {
+    algorithm: 'argon2id',
+    memoryCost: 19456,
+    timeCost: 2
+  })
+
+  await db.update(adminUsers).set({ passwordHash }).where(eq(adminUsers.id, id))
+
+  // Invalidate sessions for that user (if not actor resetting their own password)
+  if (id !== actor.id) {
+    await db.delete(adminSessions).where(eq(adminSessions.userId, id))
+  }
+
+  await recordAudit(actor, 'admin_user', id, 'reset_password', {})
+  return { ok: true }
+}
+
