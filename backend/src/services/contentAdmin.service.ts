@@ -51,14 +51,14 @@ export const DEFAULT_CONTENT_BLOCKS: Record<string, Record<string, unknown>> = {
         name: 'Kantor Cabang Bekasi',
         address: 'Jl. Ahmad Yani No. 88, Bekasi Selatan',
         phone: '021-88991234',
-        whatsapp: '+6281234567890'
+        whatsapp: '+6285694072344'
       },
       {
         city: 'Jakarta Selatan',
         name: 'Kantor Cabang Jakarta',
         address: 'Jl. TB Simatupang No. 12, Cilandak, Jakarta Selatan',
         phone: '021-78901234',
-        whatsapp: '+6281234567891'
+        whatsapp: '+6285694072344'
       }
     ]
   }

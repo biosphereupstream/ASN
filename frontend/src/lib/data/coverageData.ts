@@ -153,37 +153,37 @@ export const BRANCHES_DATA: Record<string, BranchInfo> = {
     name: 'ASN.NET Kantor Cabang Bekasi',
     address: 'Jl. Ahmad Yani No. 88, Bekasi Selatan, Kota Bekasi 17141',
     phone: '(021) 8899-7711',
-    whatsapp: '628111222333'
+    whatsapp: '6285694072344'
   },
   'kota-bogor': {
     name: 'ASN.NET Kantor Cabang Bogor',
     address: 'Jl. Pajajaran No. 45, Bogor Tengah, Kota Bogor 16128',
     phone: '(0251) 833-4455',
-    whatsapp: '628111222334'
+    whatsapp: '6285694072344'
   },
   'kabupaten-bogor': {
     name: 'ASN.NET Service Point Cibinong',
     address: 'Jl. Tegar Beriman No. 12, Cibinong, Kab. Bogor 16914',
     phone: '(021) 8790-1234',
-    whatsapp: '628111222335'
+    whatsapp: '6285694072344'
   },
   'jakarta-selatan': {
     name: 'ASN.NET Flagship Tebet',
     address: 'Jl. Tebet Barat Dalam Raya No. 18, Tebet, Jakarta Selatan 12810',
     phone: '(021) 829-5566',
-    whatsapp: '628111222336'
+    whatsapp: '6285694072344'
   },
   'kota-depok': {
     name: 'ASN.NET Hub Margonda',
     address: 'Jl. Margonda Raya No. 120, Beji, Kota Depok 16423',
     phone: '(021) 7720-3344',
-    whatsapp: '628111222337'
+    whatsapp: '6285694072344'
   },
   bandung: {
     name: 'ASN.NET Hub Dago',
     address: 'Jl. Ir. H. Juanda No. 84, Coblong, Kota Bandung 40132',
     phone: '(022) 250-9988',
-    whatsapp: '628111222338'
+    whatsapp: '6285694072344'
   }
 }
 

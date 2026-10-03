@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ params, setHeaders }) => {
     name: `ASN.NET Layanan Pelanggan ${city.name}`,
     address: `Sentra Layanan & Dukungan Fiber, ${city.name}`,
     phone: '0800-1-ASN-NET',
-    whatsapp: '628111222333'
+    whatsapp: '6285694072344'
   }
 
   setHeaders({

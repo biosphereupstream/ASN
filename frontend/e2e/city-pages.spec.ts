@@ -133,7 +133,7 @@ test.describe('City Landing Page — /city/[slug]', () => {
     await expect(page.getByText('Jl. Ahmad Yani No. 88, Bekasi Selatan, Kota Bekasi 17141')).toBeVisible()
     const waLink = page.getByRole('link', { name: /Chat WhatsApp Cabang/i })
     await expect(waLink).toBeVisible()
-    await expect(waLink).toHaveAttribute('href', /wa\.me\/628111222333/)
+    await expect(waLink).toHaveAttribute('href', /wa\.me\/6285694072344/)
   })
 
   test('returns 404 for unlisted city slug', async ({ page }) => {

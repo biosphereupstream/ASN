@@ -11,7 +11,7 @@
   import StatsStrip from '$lib/components/sections/StatsStrip.svelte'
   import FaqTeaser from '$lib/components/sections/FaqTeaser.svelte'
   import FinalCta from '$lib/components/sections/FinalCta.svelte'
-  import { formatIdr } from '$lib/data/home'
+  import { formatIdr, WA_NUMBER } from '$lib/data/home'
 
   interface CityOption {
     slug: string
@@ -309,6 +309,6 @@
   <!-- Sticky mobile CTA (PRD §8) -->
   <div class="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-asn-silver-400/40 bg-white/85 p-3 backdrop-blur sm:hidden">
     <a href="#cek" class="btn-primary flex-1 rounded-xl py-3 text-center text-sm font-bold">Cek Cakupan</a>
-    <a href="https://wa.me/622150919981" class="glossy flex-1 rounded-xl py-3 text-center text-sm font-bold">WhatsApp</a>
+    <a href="https://wa.me/{WA_NUMBER}" class="glossy flex-1 rounded-xl py-3 text-center text-sm font-bold">WhatsApp</a>
   </div>
 </main>

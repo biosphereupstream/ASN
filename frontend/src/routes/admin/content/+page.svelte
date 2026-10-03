@@ -166,7 +166,7 @@
         name: 'Kantor Cabang',
         address: 'Alamat lengkap kantor',
         phone: '021-000000',
-        whatsapp: '+62812000000'
+        whatsapp: '+6285694072344'
       }
     ]
   }

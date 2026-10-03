@@ -105,7 +105,7 @@ export const FAQS: { q: string; a: string }[] = [
   }
 ]
 
-export const WA_NUMBER = '622150919981'
+export const WA_NUMBER = '6285694072344'
 
 export function formatIdr(n: number): string {
   return 'Rp' + n.toLocaleString('id-ID')

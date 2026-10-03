@@ -152,7 +152,10 @@ test.describe('/daftar lead form', () => {
 async function runChecker(page: import('@playwright/test').Page, city: string, district: string) {
   await page.goto('/')
   const checkerSelects = page.locator('section select')
+  await expect(checkerSelects.nth(0)).toBeEnabled({ timeout: 15_000 })
+  await expect(checkerSelects.nth(0).locator('option')).not.toHaveCount(1, { timeout: 15_000 })
   await checkerSelects.nth(0).selectOption(city)
+  await expect(checkerSelects.nth(1)).toBeEnabled({ timeout: 15_000 })
   await checkerSelects.nth(1).selectOption(district)
   // Enabled only once city+district are chosen (and the page is hydrated).
   await expect(page.getByRole('button', { name: 'Cek Cakupan' })).toBeEnabled({ timeout: 15_000 })
