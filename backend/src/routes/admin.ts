@@ -1,13 +1,35 @@
 import { Elysia, t } from 'elysia'
 import {
+  ALL_ADMIN_ROLES,
+  CATALOG_ROLES,
+  CONTENT_ROLES,
   COVERAGE_ROLES,
   LEADS_ROLES,
+  USER_MGMT_ROLES,
+  createAdminUser,
+  listAdminUsers,
   login,
   logout,
   pruneExpiredSessions,
+  resetAdminUserPassword,
   resolveActor,
-  type AdminActor
+  updateAdminUser,
+  type AdminActor,
+  type AdminRole
 } from '../services/auth.service'
+import {
+  createPackage,
+  deletePackageAreaPrice,
+  listAdminPackages,
+  listProducts,
+  reorderPackages,
+  updatePackage
+} from '../services/packageAdmin.service'
+import {
+  getContentBlock,
+  listAllContentBlocks,
+  upsertContentBlock
+} from '../services/contentAdmin.service'
 import {
   bulkUpdateStatus,
   exportLeadsCsv,
@@ -315,6 +337,232 @@ export const adminRoutes = new Elysia({ prefix: '/api/admin' })
       })
     }
   )
+  .delete(
+    '/prices/:id',
+    async ({ set, cookie, params }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!CATALOG_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+      const ok = await deletePackageAreaPrice(params.id, actor)
+      if (!ok) return error(set, 404, { error: 'OVERRIDE_NOT_FOUND' })
+      return { ok: true }
+    },
+    { params: t.Object({ id: t.Numeric() }) }
+  )
+
+  // --- Package catalog CRUD (FR-7.3) — admin/marketing -----------------------
+  .get('/packages', async ({ set, cookie }) => {
+    const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+    if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+    if (!CATALOG_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+    return {
+      packages: await listAdminPackages(),
+      products: await listProducts()
+    }
+  })
+  .post(
+    '/packages',
+    async ({ set, cookie, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!CATALOG_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+
+      try {
+        const pkg = await createPackage(
+          {
+            productId: body.productId,
+            name: body.name,
+            slug: body.slug || undefined,
+            speedMbps: body.speedMbps,
+            basePriceIdr: body.basePriceIdr,
+            devicesMin: body.devicesMin,
+            devicesMax: body.devicesMax,
+            features: body.features
+          },
+          actor
+        )
+        return { ok: true, package: pkg }
+      } catch (err: unknown) {
+        const msg = (err as Error)?.message || ''
+        if (msg.includes('unique') || msg.includes('duplicate')) {
+          return error(set, 409, { error: 'SLUG_EXISTS' })
+        }
+        return error(set, 422, { error: 'INVALID_PACKAGE_DATA' })
+      }
+    },
+    {
+      body: t.Object({
+        productId: t.Numeric(),
+        name: t.String({ minLength: 2 }),
+        slug: t.Optional(t.String()),
+        speedMbps: t.Numeric({ minimum: 1 }),
+        basePriceIdr: t.Numeric({ minimum: 0 }),
+        devicesMin: t.Numeric({ minimum: 1 }),
+        devicesMax: t.Numeric({ minimum: 1 }),
+        features: t.Optional(t.Array(t.String()))
+      })
+    }
+  )
+  .patch(
+    '/packages/:id',
+    async ({ set, cookie, params, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!CATALOG_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+
+      try {
+        const pkg = await updatePackage(params.id, body, actor)
+        if (!pkg) return error(set, 404, { error: 'PACKAGE_NOT_FOUND' })
+        return { ok: true, package: pkg }
+      } catch (err: unknown) {
+        const msg = (err as Error)?.message || ''
+        if (msg.includes('unique') || msg.includes('duplicate')) {
+          return error(set, 409, { error: 'SLUG_EXISTS' })
+        }
+        return error(set, 422, { error: 'INVALID_PACKAGE_DATA' })
+      }
+    },
+    {
+      params: t.Object({ id: t.Numeric() }),
+      body: t.Object({
+        productId: t.Optional(t.Numeric()),
+        name: t.Optional(t.String({ minLength: 2 })),
+        slug: t.Optional(t.String()),
+        speedMbps: t.Optional(t.Numeric({ minimum: 1 })),
+        basePriceIdr: t.Optional(t.Numeric({ minimum: 0 })),
+        devicesMin: t.Optional(t.Numeric({ minimum: 1 })),
+        devicesMax: t.Optional(t.Numeric({ minimum: 1 })),
+        features: t.Optional(t.Array(t.String())),
+        isActive: t.Optional(t.Boolean())
+      })
+    }
+  )
+  .post(
+    '/packages/reorder',
+    async ({ set, cookie, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!CATALOG_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+      await reorderPackages(body.orderedIds, actor)
+      return { ok: true }
+    },
+    {
+      body: t.Object({ orderedIds: t.Array(t.Numeric(), { minItems: 1 }) })
+    }
+  )
+
+  // --- Content blocks CMS (FR-6 / FR-7.6) — admin/marketing ------------------
+  .get('/content', async ({ set, cookie }) => {
+    const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+    if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+    if (!CONTENT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+    return { blocks: await listAllContentBlocks() }
+  })
+  .put(
+    '/content/:key',
+    async ({ set, cookie, params, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!CONTENT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+      const block = await upsertContentBlock(params.key, body.data, actor)
+      return { ok: true, block }
+    },
+    {
+      params: t.Object({ key: t.String() }),
+      body: t.Object({ data: t.Record(t.String(), t.Any()) })
+    }
+  )
+
+  // --- Admin users management (FR-7.1 / FR-7.5) — admin only ----------------
+  .get('/users', async ({ set, cookie }) => {
+    const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+    if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+    if (!USER_MGMT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+    return { users: await listAdminUsers() }
+  })
+  .post(
+    '/users',
+    async ({ set, cookie, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!USER_MGMT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+
+      const result = await createAdminUser(
+        {
+          email: body.email,
+          name: body.name,
+          role: body.role as AdminRole,
+          password: body.password
+        },
+        actor
+      )
+      if (!result.ok) {
+        if (result.error === 'EMAIL_EXISTS') return error(set, 409, { error: 'EMAIL_EXISTS' })
+        return error(set, 422, { error: result.error })
+      }
+      return { ok: true, user: result.user }
+    },
+    {
+      body: t.Object({
+        email: t.String({ minLength: 3 }),
+        name: t.String({ minLength: 2 }),
+        role: t.String(),
+        password: t.String({ minLength: 6 })
+      })
+    }
+  )
+  .patch(
+    '/users/:id',
+    async ({ set, cookie, params, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!USER_MGMT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+
+      const result = await updateAdminUser(
+        params.id,
+        {
+          name: body.name,
+          role: body.role as AdminRole | undefined,
+          isActive: body.isActive
+        },
+        actor
+      )
+      if (!result.ok) {
+        if (result.error === 'USER_NOT_FOUND') return error(set, 404, { error: 'USER_NOT_FOUND' })
+        if (result.error === 'CANNOT_DEACTIVATE_SELF') return error(set, 400, { error: 'CANNOT_DEACTIVATE_SELF' })
+        if (result.error === 'CANNOT_DEMOTE_SELF') return error(set, 400, { error: 'CANNOT_DEMOTE_SELF' })
+        return error(set, 422, { error: result.error })
+      }
+      return { ok: true }
+    },
+    {
+      params: t.Object({ id: t.Numeric() }),
+      body: t.Object({
+        name: t.Optional(t.String({ minLength: 2 })),
+        role: t.Optional(t.String()),
+        isActive: t.Optional(t.Boolean())
+      })
+    }
+  )
+  .post(
+    '/users/:id/reset-password',
+    async ({ set, cookie, params, body }) => {
+      const actor = await actorFromCookie(cookie[SESSION_COOKIE]?.value as string | undefined)
+      if (!actor) return error(set, 401, { error: 'UNAUTHENTICATED' })
+      if (!USER_MGMT_ROLES.includes(actor.role)) return error(set, 403, { error: 'FORBIDDEN' })
+
+      const result = await resetAdminUserPassword(params.id, body.password, actor)
+      if (!result.ok) return error(set, 404, { error: 'USER_NOT_FOUND' })
+      return { ok: true }
+    },
+    {
+      params: t.Object({ id: t.Numeric() }),
+      body: t.Object({
+        password: t.String({ minLength: 6 })
+      })
+    }
+  )
+
   // Small on-boot hygiene so expired sessions don't accumulate.
   .onStart(async () => {
     await pruneExpiredSessions().catch(() => undefined)
