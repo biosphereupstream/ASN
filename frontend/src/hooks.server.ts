@@ -11,7 +11,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   const cookie = event.cookies.get('asn_admin_session')
   if (cookie) {
     try {
-      const res = await fetch('http://127.0.0.1:3001/api/admin/me', {
+      const backend = process.env.NEON_FUNCTION_API_BASE_URL || process.env.BACKEND_URL || 'http://127.0.0.1:3001'
+      const res = await fetch(`${backend}/api/admin/me`, {
         headers: { cookie: `asn_admin_session=${cookie}` }
       })
       if (res.ok) {

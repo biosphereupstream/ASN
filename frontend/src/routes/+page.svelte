@@ -61,7 +61,10 @@
     }
   }
 
-  async function onCityChange() {
+  async function onCityChange(e?: Event) {
+    if (e?.currentTarget) {
+      city = (e.currentTarget as HTMLSelectElement).value
+    }
     district = ''
     result = null
     districts = []

@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit'
 import type { Actions, PageServerLoad } from './$types'
 
-const BACKEND = 'http://127.0.0.1:3001'
+const BACKEND = process.env.NEON_FUNCTION_API_BASE_URL || process.env.BACKEND_URL || 'http://127.0.0.1:3001'
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   if (locals.actor) redirect(302, '/admin/leads')

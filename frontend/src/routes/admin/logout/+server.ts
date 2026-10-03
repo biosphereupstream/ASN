@@ -11,7 +11,8 @@ export const POST: RequestHandler = async ({ cookies, fetch }) => {
 
   if (token) {
     try {
-      await fetch('http://127.0.0.1:3001/api/admin/logout', {
+      const backend = process.env.NEON_FUNCTION_API_BASE_URL || process.env.BACKEND_URL || 'http://127.0.0.1:3001'
+      await fetch(`${backend}/api/admin/logout`, {
         method: 'POST',
         headers: { authorization: `Bearer ${token}` }
       })

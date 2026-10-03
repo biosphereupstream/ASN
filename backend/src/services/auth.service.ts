@@ -2,6 +2,7 @@ import { randomBytes, createHash, timingSafeEqual } from 'node:crypto'
 import { and, asc, eq, gt, lt, or } from 'drizzle-orm'
 import { db } from '../db/client'
 import { adminSessions, adminUsers, auditLogs } from '../db/schema'
+import { hashPassword, verifyPassword } from './password'
 
 /**
  * Admin auth per PRD FR-7.1:
@@ -83,7 +84,7 @@ export async function login(
 
   // Uniform failure for unknown email / wrong password / inactive user.
   const hash = user?.passwordHash ?? 'asnnet-dummy-hash'
-  const passwordOk = await Bun.password.verify(password, hash).catch(() => false)
+  const passwordOk = await verifyPassword(password, hash)
   if (!user || !user.isActive || !passwordOk) {
     return { ok: false, error: 'INVALID_CREDENTIALS' }
   }
@@ -192,11 +193,7 @@ export async function createAdminUser(
     return { ok: false, error: 'EMAIL_EXISTS' }
   }
 
-  const passwordHash = await Bun.password.hash(input.password, {
-    algorithm: 'argon2id',
-    memoryCost: 19456,
-    timeCost: 2
-  })
+  const passwordHash = await hashPassword(input.password)
 
   const [created] = await db
     .insert(adminUsers)
@@ -278,11 +275,7 @@ export async function resetAdminUserPassword(
 
   if (!user) return { ok: false, error: 'USER_NOT_FOUND' }
 
-  const passwordHash = await Bun.password.hash(newPassword, {
-    algorithm: 'argon2id',
-    memoryCost: 19456,
-    timeCost: 2
-  })
+  const passwordHash = await hashPassword(newPassword)
 
   await db.update(adminUsers).set({ passwordHash }).where(eq(adminUsers.id, id))
 
